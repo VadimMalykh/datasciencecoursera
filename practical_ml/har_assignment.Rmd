@@ -1,0 +1,152 @@
+---
+title: "Human Activity Recognition"
+author: "Vadim Malykh"
+date: "12/21/2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, our goal is to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants and predict quality of excercise.  
+
+## Data exploration  
+
+It is a classification problem. We have the bunch of measures of human activities and need to predict the class of common mistakes. The classes are:  
+- A exactly according to the specification
+- B throwing the elbows to the front
+- C lifting the dumbbel only halfway
+- D lowering the dumbbel only halfway
+- E throwing the hips to the front  
+
+So first we load train dataset and explore our data.
+
+```{r}
+# read data
+train = read.csv("input/pml-training.csv")
+dim(train)
+```
+
+So we have `r nrow(train)` observations and `r ncol(train)` variables.  The target variable (what we need to predict) is *classe*.  
+
+```{r}
+table(train$classe)
+```
+
+The classes are balanced quite well. We have about the same amount for classes B, C, D, and E and larger amount for class A (no mistakes).  
+
+```{r}
+summary(train)
+```
+
+As we can see some of the fields have NA values. Some other fields have '#DIV/0!' and empty values. We'll treat them also as NA values.
+
+```{r}
+train[train == '#DIV/0!'] = NA
+train[train == ''] = NA
+```
+
+Now let's have a look on map of NA values to see whether we have some patterns.
+
+```{r}
+naCols = colnames(train)[colSums(is.na(train)) > 0]
+naMap = is.na(train[, naCols])
+naMap = matrix(naMap, nrow(train), length(naCols))
+image(naMap, axes=FALSE, xlab='Observations', ylab='Predictors with NAs')
+```
+
+Here light color means NA value, and dark color means non NA value.  
+
+As we can see all variables with NA values have the same pattern and miss values for the most of the observations. Thus let's just ignore varuables with NA values.
+
+```{r}
+train = train[, !names(train) %in% naCols]
+dim(train)
+```
+
+So now we have only `r ncol(train)` fields.
+
+```{r}
+str(train, list.len=ncol(train))
+```
+
+For machine learining algorithm we will need to remove some variables. Obviously X is some kind of observation ID and user_name also not useful for prediction. There are also some other technical fields useless for prediction.
+
+```{r}
+train$X = NULL
+train$user_name = NULL
+train$cvtd_timestamp = NULL
+train$new_window = NULL
+```
+
+
+## Training model  
+
+We will use *Random Forest* model for this task. It usually performes very well for classification problems like this one. Also it's a good choise for the situation when we have a lot of predictors. It deals well with overfitting issues.  
+
+To assess model performance we'll create validation set. After training and evaluating our model we'll train final model using all the data in the train set.
+
+```{r message=FALSE}
+library(caret)
+library(randomForest)
+```
+
+```{r}
+inTrain = createDataPartition(train$classe, p=0.8, list=FALSE)
+
+workTrain = train[inTrain,]
+validation = train[-inTrain,]
+
+model = randomForest(classe~., data=workTrain)
+pred = predict(model, newdata=validation, type="prob")
+predClass = predict(model, newdata=validation)
+table(predClass, validation$classe)
+```
+
+Let's plot ROC curves for all predicted classes and calculate AUC values of our model.
+
+```{r message=FALSE}
+library(ROCR)
+```
+
+```{r}
+aucs = c()
+plot(x=NA, y=NA, xlim=c(0,1), ylim=c(0,1),
+     ylab='True Positive Rate',
+     xlab='False Positive Rate',
+     bty='n')
+
+for (cls in colnames(pred)) {
+  rocrPred = prediction(pred[,cls], validation$classe == cls)
+  rocrPerf = performance(rocrPred, "tpr", "fpr")
+
+  roc.x = unlist(rocrPerf@x.values)
+  roc.y = unlist(rocrPerf@y.values)
+  lines(roc.y ~ roc.x, col=which(colnames(pred)==cls)+1, lwd=2)
+  
+  auc = performance(rocrPred, "auc")
+  auc = unlist(slot(auc, "y.values"))
+  aucs[cls] = auc
+}
+legend("bottomright", legend=colnames(pred), fill=(1:ncol(pred))+1)
+aucs
+```
+
+As we see model performance is very good. So we can expect almost perfect predictions for test set.
+
+## Prediction
+
+To predict classes for test set we retrain model with full training dataset.
+
+```{r}
+model = randomForest(classe~., data=train)
+```
+
+```{r}
+test = read.csv("input/pml-testing.csv")
+pred = predict(model, newdata=test)
+pred
+```
