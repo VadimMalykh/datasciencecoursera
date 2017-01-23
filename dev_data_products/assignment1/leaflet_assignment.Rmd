@@ -1,0 +1,68 @@
+---
+title: "Leaflet Interactive Map Example"
+author: "Vadim Malykh"
+date: "1/20/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Leaflet Interactive Map Example
+
+The goal of this document is to show an example of using `leaflet` R package.  
+I will use real dataset to show data on the map. This allows me to demonstrate some real case of using the package.  
+
+## Dataset
+
+I chose to use city of Chicago open dataset which can be downloaded from City of Chicago Data Portal (https://data.cityofchicago.org/).  
+
+I use Crimes dataset (https://data.cityofchicago.org/Public-Safety/Crimes-2001-to-present/ijzp-q8t2) which contains all registered climes in Chicago. I've downloaded filtered data. I only selected data for 2015 and 2016 year. I've also filtered out all the data without Latitude and Longitude.
+
+```{r}
+
+data <- read.csv("Crimes_-_2001_to_present.csv")
+summary(data)
+```
+
+## Interactive maps with Leaflet
+
+As a simple example let's show the first 500 crimes from the dataset.  
+
+```{r message=FALSE}
+library(leaflet)
+library(dplyr)
+```
+```{r}
+head(data, 500) %>% select(Latitude, Longitude) %>% leaflet() %>% addTiles() %>% addMarkers(clusterOptions = markerClusterOptions())
+```
+
+***
+Now let's create heatmaps of crimes in 2015-2016 in summary and also by the most presented types of crimes.  
+For heatmap we need to install `leaflet.extras` package (details here - https://github.com/bhaskarvk/leaflet.extras).  
+
+**All crimes in 2015-2016**
+
+```{r message=FALSE}
+library(leaflet.extras)
+```
+```{r}
+data %>% select(Latitude, Longitude) %>% leaflet() %>% addTiles() %>% addWebGLHeatmap(lng=~Longitude, lat=~Latitude, size=500)
+```
+  
+***
+**All assaults in 2015-2016**
+
+```{r}
+data %>% filter(Primary.Type == 'ASSAULT') %>% select(Latitude, Longitude) %>% leaflet() %>% addTiles() %>%
+    addWebGLHeatmap(lng=~Longitude, lat=~Latitude, size=500)
+```
+  
+***
+**All not arrested robbers in 2015-2016**
+
+```{r}
+data %>% filter(Primary.Type == 'ROBBERY', Arrest == 'false') %>% select(Latitude, Longitude) %>% leaflet() %>% addTiles() %>%
+    addWebGLHeatmap(lng=~Longitude, lat=~Latitude, size=500)
+```
