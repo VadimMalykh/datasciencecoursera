@@ -1,0 +1,106 @@
+---
+title: "Example presentation with Plotly graphics"
+author: "Vadim Malykh"
+date: "1/25/2017"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+library(plotly)
+library(dplyr)
+```
+
+
+## Introduction
+
+The goal of this presentation is to show some examples of using `plotly` graphics.  
+
+First of all we will need some data to visualize. Let's use something already presented in R.
+
+## Dataset
+
+We are going to use Titanic dataset which is built in modern R distributions.
+
+```{r include=TRUE, echo=TRUE}
+data("Titanic")
+Titanic = as.data.frame(Titanic)
+summary(Titanic)
+```
+
+***
+
+```{r echo=TRUE, include=TRUE}
+head(Titanic, 10)
+```  
+
+## Not survived passengers by class  
+
+Now we will see how passenger survival depended of passenger class (we consider crew as another class)
+
+```{r include=TRUE, warning=FALSE, message=FALSE, echo=FALSE}
+not_survived = subset(Titanic, Survived=='No')
+plot_ly(y=not_survived$Freq, color=not_survived$Class, type="box")
+```
+
+
+## Survived passengers by class  
+
+Now we will see how passenger survival depended of passenger class (we consider crew as another class)
+
+```{r include=TRUE, warning=FALSE, message=FALSE, echo=FALSE}
+survived = subset(Titanic, Survived=='Yes')
+plot_ly(y=survived$Freq, color=survived$Class, type="box")
+```
+
+## Class distribution
+
+It seems like the members of the crew were most frequent in survival and also not survival which is strange. But it's actually related to class distribution we have in our dataset. Let's see how much records of each class we have.
+```{r include=TRUE}
+class_distr = Titanic %>% group_by(Class) %>% summarise(sum=sum(Freq))
+plot_ly(y=class_distr$sum, color=class_distr$Class, type="bar")
+```
+
+***
+As we can see - crew is the most presented class in the dataset. To get relative information (as range rather than absolute sum of incidents), let's devide all frequencies by total number for each class.
+
+```{r include=TRUE, echo=TRUE}
+Titanic <- Titanic %>% left_join(class_distr, by="Class") %>% 
+  mutate(Freq = Freq / sum) %>% select(-sum)
+```
+
+## Not survived passengers by class (ratio)
+
+Now we will see how passenger survival depended of passenger class (we consider crew as another class)
+
+```{r include=TRUE, warning=FALSE, message=FALSE, echo=FALSE}
+not_survived = subset(Titanic, Survived=='No')
+plot_ly(y=not_survived$Freq, color=not_survived$Class, type="box")
+```
+
+## Survived passengers by class (ratio) 
+
+Now we will see how passenger survival depended of passenger class (we consider crew as another class)
+
+```{r include=TRUE, warning=FALSE, message=FALSE, echo=FALSE}
+survived = subset(Titanic, Survived=='Yes')
+plot_ly(y=survived$Freq, color=survived$Class, type="box")
+```
+
+## Adult men survived by class (ratio)
+
+Let's have a closer look on one particular category - adult men.
+
+```{r include=TRUE, warning=FALSE}
+adult_men_survived = subset(Titanic, Survived =='Yes' & Sex=='Male' & Age=='Adult')
+plot_ly(y=adult_men_survived$Freq, color=adult_men_survived$Class, type="bar")
+```
+
+## Adult women survived by class (ratio)
+
+Let's have a closer look on one particular category - adult men.
+
+```{r include=TRUE, warning=FALSE}
+adult_women_survived = subset(Titanic, Survived =='Yes' & Sex=='Female' & Age=='Adult')
+plot_ly(y=adult_women_survived$Freq, color=adult_men_survived$Class, type="bar")
+```
