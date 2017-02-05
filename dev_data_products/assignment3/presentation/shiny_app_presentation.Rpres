@@ -1,0 +1,53 @@
+SVM classification algorithm.  
+========================================================
+author: 
+date: 
+autosize: true
+Shiny app example (assignment 3).
+
+About application
+========================================================
+
+We created sample `Shiny application`.  
+
+***You can access the application here: <https://vadimmalykh.shinyapps.io/shiny_assignment_3/>***  
+***Source code for the application is available here: <https://github.com/VadimMalykh/datasciencecoursera/tree/master/dev_data_products/assignment3/shiny_assignment_3>***  
+
+It's a very basic Shiny application created only for demonstration purposes. We demostrate here SVM (Support Vector Machine) classification algorithm (more on that in the next slide).
+
+
+Support Vector Machine
+========================================================
+
+`Support Vector Machine` is the machine learning algorithm best known to be great for classification tasks. Given a set of training examples, each marked as belonging to one or the other of two categories, an SVM training algorithm builds a model that assigns new examples to one category or the other, making it a non-probabilistic binary linear classifier.  
+
+In this application we used R package `e1071` to train SVM model. We used default settings as it's just the basic demonstration. For real tasks of course you need to tune some of the algorithm parameters.
+
+
+Test dataset
+========================================================
+
+We need some dataset for demonstration. In this application we generate the test dataset. User can tune some dataset generation settings. We can generate classes using linear, quadratic or sinusoidal formulas. User also can change number of points and level of noise. Here is an example how quadratic dataset looks like.
+
+```{r echo=FALSE}
+library(ggplot2)
+source("../shiny_assignment_3/lib.R")
+df = generateDF("quadratic", 400, 0.03)
+g <- ggplot(df, aes(x=X1, y=X2, col=as.factor(Y))) + geom_point()
+g
+```
+
+SMV learning
+========================================================
+
+After generating dataset we can learn the model using SVM algorithm. We use `svm` function from R package `e1071` with default settings. After learning model we build the grid as test dataset, make prediction and display as partially transparent tiles on top of initial dataset.
+
+```{r echo=FALSE}
+library(e1071)
+svmDF = learnSVMModel(df)[[1]]
+g <- g + geom_tile(data=svmDF, 
+                  mapping=aes(width=0.037, height=0.037, fill=as.factor(Y)),
+                  alpha=0.2,
+                  show.legend=FALSE)
+g
+```
